@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Storage Check</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a0a;color:#e8e8e0;font-family:-apple-system,sans-serif;padding:16px 16px 60px;font-size:0.8rem;line-height:1.5;max-width:600px;margin:0 auto;}
+h1{font-size:1.2rem;color:#c8f05a;margin-bottom:2px;}
+.sub{font-size:0.6rem;color:#555;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px;}
+.key{margin-top:12px;padding:12px 14px;background:#141414;border:1px solid #222;border-radius:10px;}
+.key-name{font-weight:700;color:#5adcf0;margin-bottom:4px;font-size:0.8rem;}
+.status{font-size:0.72rem;}
+.found{color:#c8f05a;}
+.missing{color:#f05a8a;}
+pre{white-space:pre-wrap;word-break:break-all;font-size:0.62rem;color:#999;max-height:180px;overflow-y:auto;margin-top:8px;background:#0a0a0a;padding:8px;border-radius:6px;}
+button{width:100%;background:#c8f05a;border:none;border-radius:9px;padding:14px;font-size:0.78rem;font-weight:700;color:#0a0a0a;cursor:pointer;margin-top:20px;letter-spacing:0.03em;}
+button:active{background:#b8e048;}
+.origin{font-size:0.62rem;color:#666;margin-bottom:14px;padding:8px 10px;background:#141414;border-radius:7px;}
+</style>
+</head>
+<body>
+<h1>🔍 Storage Check</h1>
+<div class="sub">Read-only — changes nothing</div>
+<div class="origin">Checking storage for: <span id="origin-lbl"></span></div>
+<div id="out"></div>
+<button onclick="downloadAll()">⬇ Download Full Backup (JSON)</button>
+<script>
+document.getElementById('origin-lbl').textContent = location.origin;
+const keys = [
+  ['wo_history_v2','Workout history'],
+  ['program_v2','Your custom workout plan / variants'],
+  ['wip_v2','In-progress (unfinished) session'],
+  ['exercise_library_v1','Exercise library'],
+  ['rest_timer_v1','Active rest timer'],
+  ['rest_default_v1','Rest timer default duration']
+];
+const out = document.getElementById('out');
+let all = {};
+keys.forEach(([k,label])=>{
+  const raw = localStorage.getItem(k);
+  all[k] = raw;
+  let info = '';
+  if(raw){
+    try{
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) info = parsed.length + ' item(s)';
+      else if(typeof parsed==='object' && parsed!==null) info = Object.keys(parsed).length + ' field(s)';
+      else info = String(parsed);
+    }catch(e){ info='(raw value, '+raw.length+' chars)'; }
+  }
+  const div = document.createElement('div');
+  div.className='key';
+  div.innerHTML = `<div class="key-name">${label}</div>
+    <div style="font-size:0.6rem;color:#555;margin-bottom:4px">${k}</div>
+    <div class="status ${raw?'found':'missing'}">${raw?'✓ Found — '+info:'✗ Not found in this browser'}</div>
+    ${raw?`<pre>${raw.slice(0,1500).replace(/</g,'&lt;')}${raw.length>1500?'\n… truncated — use Download button for full data':''}</pre>`:''}`;
+  out.appendChild(div);
+});
+function downloadAll(){
+  const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'workout-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
